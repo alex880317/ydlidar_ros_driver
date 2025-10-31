@@ -1,0 +1,48 @@
+<launch>
+  <node name="ydlidar_lidar_publisher"  pkg="ydlidar_ros_driver"  type="ydlidar_ros_driver_node" output="screen" respawn="false" >
+    <!-- string property -->
+    <param name="port"         type="string" value="/dev/ttyUSB0"/>  
+    <param name="frame_id"     type="string" value="laser_frame"/>
+    <param name="ignore_array"     type="string" value=""/>
+
+    <!-- int property -->
+    <param name="baudrate"         type="int" value="512000"/>  
+    <!-- 0:TYPE_TOF, 1:TYPE_TRIANGLE, 2:TYPE_TOF_NET -->
+    <param name="lidar_type"       type="int" value="0"/>  
+    <!-- 0:YDLIDAR_TYPE_SERIAL, 1:YDLIDAR_TYPE_TCP -->
+    <param name="device_type"         type="int" value="0"/>  
+    <param name="sample_rate"         type="int" value="20"/>  
+    <param name="abnormal_check_count"         type="int" value="4"/>  
+
+    <!-- bool property -->
+    <param name="resolution_fixed"    type="bool"   value="true"/>
+    <param name="auto_reconnect"    type="bool"   value="true"/>
+    <param name="reversion"    type="bool"   value="true"/>
+    <param name="inverted"    type="bool"   value="true"/>
+    <param name="isSingleChannel"    type="bool"   value="false"/>
+    <param name="intensity"    type="bool"   value="false"/>
+    <param name="support_motor_dtr"    type="bool"   value="false"/>
+    <param name="invalid_range_is_inf"    type="bool"   value="false"/>
+    <param name="point_cloud_preservative"    type="bool"   value="false"/>
+
+    <!-- float property -->
+    <param name="angle_min"    type="double" value="-180" />
+    <param name="angle_max"    type="double" value="180" />
+    <param name="range_min"    type="double" value="0.01" />
+    <param name="range_max"    type="double" value="50.0" />
+    <param name="frequency"    type="double" value="10.0"/>
+
+    <!-- 拖尾濾波參數 -->
+    <param name="enable_strong_light_filter"  type="bool"   value="true"/>
+    <param name="filter_strategy"             type="int"    value="2"/>
+    <!-- filter_strategy: 1=角度距離法, 2=截距法（推薦） -->
+    <param name="filter_max_dist"             type="double" value="0.20"/>
+    <!-- filter_max_dist: 最大距離閾值（米），用於判斷是否為拖尾點 -->
+    <param name="filter_max_angle"            type="double" value="12.0"/>
+    <!-- filter_max_angle: 最大角度閾值（度），用於判斷是否為拖尾點 -->
+    <param name="filter_min_noise"            type="int"    value="1"/>
+    <!-- filter_min_noise: 最小噪點數量，連續噪點少於此值時不濾除 -->
+  </node>
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser4"
+    args="0.0 0.0 0.2 0.0 0.0 0.0 /base_footprint /laser_frame 40" />
+</launch>
