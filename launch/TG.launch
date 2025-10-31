@@ -1,8 +1,8 @@
 <launch>
   <node name="ydlidar_lidar_publisher"  pkg="ydlidar_ros_driver"  type="ydlidar_ros_driver_node" output="screen" respawn="false" >
     <!-- string property -->
-    <param name="port"         type="string" value="/dev/ttyUSB0"/>  
-    <param name="frame_id"     type="string" value="laser_frame"/>
+    <param name="port"         type="string" value="/dev/ttyUSB2"/>  
+    <param name="frame_id"     type="string" value="laser"/>
     <param name="ignore_array"     type="string" value=""/>
 
     <!-- int property -->
@@ -43,6 +43,8 @@
     <param name="filter_min_noise"            type="int"    value="1"/>
     <!-- filter_min_noise: 最小噪點數量，連續噪點少於此值時不濾除 -->
   </node>
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser4"
-    args="0.0 0.0 0.2 0.0 0.0 0.0 /base_footprint /laser_frame 40" />
+  <!-- 注意：此轉換與 start_all.launch 中的 base_to_base_footprint 形成完整 TF 樹 -->
+  <!-- base_footprint -> base_link (在 start_all.launch) -> laser_frame (這裡) -->
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_laser_frame"
+    args="0.66 0 0 3.14159 0 0 base_link laser_frame" /> -->
 </launch>
