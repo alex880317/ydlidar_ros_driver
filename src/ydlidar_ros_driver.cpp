@@ -31,10 +31,86 @@
 #include "ydlidar_config.h"
 #include "filters/StrongLightFilter.h"
 #include <limits>       // std::numeric_limits
+#include <cmath>        // sqrt, cos, sin
+#include <vector>       // std::vector
 
 #define SDKROSVerision "1.0.2"
 
 CYdLidar laser;
+
+// 點密度濾波函數
+// 過濾掉半徑內點數少於閾值的點
+// 只對距離小於 max_range 的點進行密度濾波，遠距離點直接保留
+void applyDensityFilter(LaserScan& scan, float radius, int min_points, float max_range) {
+  if (scan.points.empty()) return;
+  
+  // 將點轉換為直角座標並計算密度
+  std::vector<bool> keep_point(scan.points.size(), false);
+  
+  for (size_t i = 0; i < scan.points.size(); i++) {
+    // 跳過無效點
+    if (scan.points[i].range < scan.config.min_range || 
+        scan.points[i].range > scan.config.max_range) {
+      continue;
+    }
+    
+    // 如果點距離大於 max_range，直接保留（不進行密度檢查）
+    if (scan.points[i].range > max_range) {
+      keep_point[i] = true;
+      continue;
+    }
+    
+    // 只對距離 <= max_range 的點進行密度濾波
+    // 轉換為直角座標
+    float x1 = scan.points[i].range * cos(scan.points[i].angle);
+    float y1 = scan.points[i].range * sin(scan.points[i].angle);
+    
+    // 計算半徑內有多少個點（只考慮距離 <= max_range 的點）
+    int neighbor_count = 0;
+    for (size_t j = 0; j < scan.points.size(); j++) {
+      // 跳過無效點
+      if (scan.points[j].range < scan.config.min_range || 
+          scan.points[j].range > scan.config.max_range) {
+        continue;
+      }
+      
+      // 只考慮距離 <= max_range 的點進行密度計算
+      if (scan.points[j].range > max_range) {
+        continue;
+      }
+      
+      // 轉換為直角座標
+      float x2 = scan.points[j].range * cos(scan.points[j].angle);
+      float y2 = scan.points[j].range * sin(scan.points[j].angle);
+      
+      // 計算兩點之間的距離
+      float dx = x2 - x1;
+      float dy = y2 - y1;
+      float distance = sqrt(dx * dx + dy * dy);
+      
+      // 如果在半徑內，計數加1
+      if (distance <= radius) {
+        neighbor_count++;
+      }
+    }
+    
+    // 如果半徑內的點數（包括自己）>= min_points，保留這個點
+    if (neighbor_count >= min_points) {
+      keep_point[i] = true;
+    }
+  }
+  
+  // 創建新的點列表，只保留通過濾波的點
+  std::vector<decltype(scan.points)::value_type> filtered_points;
+  for (size_t i = 0; i < scan.points.size(); i++) {
+    if (keep_point[i]) {
+      filtered_points.push_back(scan.points[i]);
+    }
+  }
+  
+  // 更新掃描數據
+  scan.points = filtered_points;
+}
 
 bool stop_scan(std_srvs::Empty::Request &req,
                std_srvs::Empty::Response &res) {
@@ -189,6 +265,24 @@ int main(int argc, char **argv) {
              filter_strategy, filter_max_dist, filter_max_angle, filter_min_noise);
   }
 
+  //////////////////////點密度濾波參數/////////////////
+  bool enable_density_filter = false;
+  nh_private.param<bool>("enable_density_filter", enable_density_filter, false);
+  
+  float density_radius = 0.05f;  // 半徑閾值（米），預設5公分
+  nh_private.param<float>("density_radius", density_radius, 0.05f);
+  
+  int density_min_points = 5;  // 最小點數閾值
+  nh_private.param<int>("density_min_points", density_min_points, 5);
+  
+  float density_max_range = 3.0f;  // 最大距離閾值（米），只對此距離內的點進行密度濾波
+  nh_private.param<float>("density_max_range", density_max_range, 3.0f);
+  
+  if (enable_density_filter) {
+    ROS_INFO("點密度濾波已啟用 - 半徑: %.3f m, 最小點數: %d, 最大距離: %.1f m",
+             density_radius, density_min_points, density_max_range);
+  }
+
   ros::ServiceServer stop_scan_service = nh.advertiseService("stop_scan",
                                          stop_scan);
   ros::ServiceServer start_scan_service = nh.advertiseService("start_scan",
@@ -229,6 +323,11 @@ int main(int argc, char **argv) {
       if (enable_strong_light_filter) {
         strong_light_filter.filter(scan, lidar_type_for_filter, 0, filtered_scan);
         scan_to_use = &filtered_scan;
+      }
+      
+      // 應用點密度濾波（如果啟用）
+      if (enable_density_filter) {
+        applyDensityFilter(*scan_to_use, density_radius, density_min_points, density_max_range);
       }
       
       sensor_msgs::LaserScan scan_msg;

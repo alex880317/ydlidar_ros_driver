@@ -36,12 +36,21 @@
     <param name="enable_strong_light_filter"  type="bool"   value="true"/>
     <param name="filter_strategy"             type="int"    value="2"/>
     <!-- filter_strategy: 1=角度距離法, 2=截距法（推薦） -->
-    <param name="filter_max_dist"             type="double" value="0.20"/>
+    <param name="filter_max_dist"             type="double" value="0.30"/>
     <!-- filter_max_dist: 最大距離閾值（米），用於判斷是否為拖尾點 -->
-    <param name="filter_max_angle"            type="double" value="12.0"/>
+    <param name="filter_max_angle"            type="double" value="5.0"/>
     <!-- filter_max_angle: 最大角度閾值（度），用於判斷是否為拖尾點 -->
     <param name="filter_min_noise"            type="int"    value="1"/>
     <!-- filter_min_noise: 最小噪點數量，連續噪點少於此值時不濾除 -->
+
+    <!-- 點密度濾波參數 -->
+    <param name="enable_density_filter"       type="bool"   value="true"/>
+    <param name="density_radius"              type="double" value="0.05"/>
+    <!-- density_radius: 半徑閾值（米），檢查此半徑內有多少個點 -->
+    <param name="density_min_points"          type="int"    value="5"/>
+    <!-- density_min_points: 最小點數閾值，半徑內點數少於此值時過濾掉 -->
+    <param name="density_max_range"           type="double" value="5.0"/>
+    <!-- density_max_range: 最大距離閾值（米），只對此距離內的點進行密度濾波，遠距離點直接保留 -->
   </node>
   <!-- 注意：此轉換與 start_all.launch 中的 base_to_base_footprint 形成完整 TF 樹 -->
   <!-- base_footprint -> base_link (在 start_all.launch) -> laser_frame (這裡) -->
